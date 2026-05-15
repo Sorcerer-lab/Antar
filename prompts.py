@@ -139,18 +139,12 @@ def build_persona_prompt(five_ps: dict, iks: dict, current_persona: str) -> str:
 
 ### Decision Guidelines
 1. Identify the dominant current state:
-   - anxiety / pressure → Krishna or Patanjali
-   - restless mind / overthinking → Patanjali
-   - sadness / emotional pain → Buddha
-   - identity / meaning confusion → Upanishadic Guide
+   - anxiety / performance pressure/stress/Overthinking about results/Burnout from responsibility → Krishna
+   - Attention instability/Mental restlessness/Lack of discipline/Meditation practice/Nervous-system regulation → Patanjali
+   - sadness / emotional pain/Emotional reactivity/Addiction to pleasure/validation → Buddha
+   - Existential anxiety/Fear of death/Identity crisis/Deep philosophical seeking/Desire for inner peace through understanding → Upanishadic Guide
 
-2. Use Indic Mapping:
-   - Rajas (restless, agitated) → Patanjali
-   - Tamas (heavy, low, withdrawn) → Buddha
-   - Sattva (clarity, reflection) → Upanishadic Guide
-   - Attachment to results / duty conflict → Krishna
-
-3. Choose the persona that provides the MOST helpful guidance for the current state.
+2. Choose the persona that provides the MOST helpful guidance for the current state.
 
 ### Persona Stability Rule
 - If the current persona is still appropriate → KEEP IT

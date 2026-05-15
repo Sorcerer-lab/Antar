@@ -6,10 +6,8 @@ Orchestrates: risk detection → 5Ps update → IKS mapping → persona selectio
 import os
 from dotenv import load_dotenv
 from groq import Groq
-import streamlit as st
 
-
-# Load .env file first, before anything else
+# Load .env for local development (no-op on Streamlit Cloud)
 load_dotenv()
 
 from config import LLM_MODEL, LLM_MAX_TOKENS, MAX_RESPONSE_WORDS
@@ -32,9 +30,24 @@ from utils import (
     truncate_to_word_limit,
 )
 
-# Initialise Groq client
-api_key = st.secrets.get("GROQ_API_KEY") or os.environ.get("GROQ_API_KEY")
-_client = Groq(api_key=api_key)
+# Resolve API key — Streamlit Cloud first, local .env second
+def _get_api_key() -> str:
+    try:
+        import streamlit as st
+        key = st.secrets["GROQ_API_KEY"]
+        if key:
+            return key
+    except Exception:
+        pass
+    key = os.environ.get("GROQ_API_KEY", "")
+    if not key:
+        raise EnvironmentError(
+            "GROQ_API_KEY not found. "
+            "Set it in Streamlit Cloud Secrets or in your local .env file."
+        )
+    return key
+
+_client = Groq(api_key=_get_api_key())
 
 
 # ─── Core LLM Call ────────────────────────────────────────────────────────────

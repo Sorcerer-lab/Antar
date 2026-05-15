@@ -6,6 +6,8 @@ Orchestrates: risk detection → 5Ps update → IKS mapping → persona selectio
 import os
 from dotenv import load_dotenv
 from groq import Groq
+import streamlit as st
+
 
 # Load .env file first, before anything else
 load_dotenv()
@@ -31,7 +33,8 @@ from utils import (
 )
 
 # Initialise Groq client
-_client = Groq(api_key=os.environ["GROQ_API_KEY"])
+api_key = st.secrets.get("GROQ_API_KEY") or os.environ.get("GROQ_API_KEY")
+_client = Groq(api_key=api_key)
 
 
 # ─── Core LLM Call ────────────────────────────────────────────────────────────

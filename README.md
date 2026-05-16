@@ -1,140 +1,172 @@
-# Antar
-A spiritual mental wellness guide based on bhagwad gita , yoga sutras , dhamapada, upanishad teachings
-# 🪷 Antar — Safety-Aware Mental Wellness Chatbot
+# 🪷 Antar — Indic Wisdom Mental Wellness Guide
+for demo visit @ [antar](https://antar-mental-wellness-guide.streamlit.app/)
 
-> *"Antar" (अन्तर) — Sanskrit for "inner" or "within".*
+> **"Antar"** (अन्तर) — Sanskrit for *"inner"* or *"within"*
 
-A modular, safety-aware mental wellness chatbot grounded in **Indic Knowledge Systems (IKS)**,
-powered by dynamic **5Ps psychological formulation**, and delivered through persona-adaptive
-response generation using Claude (Anthropic).
+A safety-first mental wellness chatbot grounded in **Indic Knowledge Systems (IKS)**, powered by dynamic **5Ps psychological formulation**, and delivered through **four persona-adaptive wisdom guides** — all running on a free Groq/Llama 3 backend.
 
 ---
 
-## Architecture Overview
+## What Makes Antar Different
+
+Most mental wellness chatbots apply a single Western therapeutic framework (CBT, DBT) uniformly to every user. Antar takes a different approach:
+
+- **Clinical depth** — Every message updates a live 5Ps psychological formulation (the same structured case model used by trained counsellors), giving the system a continuously-evolving picture of the person's inner landscape.
+- **Cultural grounding** — The formulation is mapped to Indic philosophical concepts (Gunas, Chitta Vritti, Dharma conflict, Ahamkara) and displayed as a contextual insight — not to route responses, but to surface a mirror of the person's state in a language rooted in their own tradition.
+- **Persona-driven wisdom** — A dedicated LLM call selects the most appropriate wisdom guide (Krishna, Patanjali, Buddha, or the Upanishadic Guide) based on the psychological formulation, and that persona speaks with authentic voice, philosophy, and contextually chosen scripture citations.
+- **Two-layer safety** — A keyword fast-path catches explicit crisis language instantly; a semantic LLM risk scorer catches indirect, coded, or escalating distress across the conversation history.
+
+---
+
+## Architecture
 
 ```
 User Input
     │
     ▼
-┌──────────────────────────────────────────────────────────┐
-│                     process_turn()                        │
-│                    (orchestrator.py)                      │
-│                                                          │
-│  1. append_message() ──────────────────────────────────  │
-│  2. detect_risk() ─────────── HIGH? → escalation_response│
-│  3. update_five_ps() ──────── LLM → JSON → state         │
-│  4. update_iks() ──────────── LLM → JSON → state         │
-│  5. update_persona() ──────── LLM → JSON → state         │
-│  6. generate_response() ───── LLM → text → truncate      │
-│  7. append_message() ──────────────────────────────────  │
-└──────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│                      process_turn()                         │
+│                    (orchestrator.py)                         │
+│                                                             │
+│  1. append_message()      ── add user turn to history       │
+│  2. quick_risk_check()    ── keyword fast-path (no LLM)     │
+│         │ HIGH? ──────────────────────── escalation_response│
+│  3. detect_risk()         ── LLM semantic risk scorer       │
+│         │ HIGH? ──────────────────────── escalation_response│
+│  4. update_five_ps()      ── LLM → JSON → state             │
+│  5. update_iks()          ── LLM → JSON → state (display)   │
+│  6. update_persona()      ── LLM → JSON → state             │
+│  7. generate_response()   ── LLM → plain text (persona)     │
+│  8. build_citation()      ── LLM → JSON (scripture lookup)  │
+│  9. append_message()      ── add assistant turn to history  │
+└────────────────────────────────────────────────────────────┘
     │
     ▼
 Streamlit UI (app.py)
-  ├── Chat messages
-  └── Sidebar: risk | persona | IKS | 5Ps | raw JSON
+  ├── Chat: persona response + scripture citation
+  └── Sidebar: risk badge · active persona · IKS mapping · 5Ps · raw JSON
 ```
 
-### Module Responsibilities
-
-| File | Responsibility |
-|---|---|
-| `app.py` | Streamlit UI, session state, chat interface, sidebar |
-| `orchestrator.py` | Pipeline controller, LLM calls, step coordination |
-| `prompts.py` | All LLM prompt builders (5Ps, IKS, persona, response) |
-| `risk.py` | Keyword-based risk detection, escalation response |
-| `state_manager.py` | Immutable state operations (init, update, reset) |
-| `utils.py` | Safe JSON parsing, truncation, fallback helpers |
-| `config.py` | Personas, keywords, defaults, model settings |
-| `test_cases.json` | 10 annotated test cases for manual/automated testing |
+> **Note on Gunas:** The Guna (Sattva / Rajas / Tamas) is computed by the IKS mapping step and displayed in the sidebar as a reflective insight for the user. It does **not** influence persona selection — persona routing is driven entirely by the 5Ps formulation and the LLM persona selector.
 
 ---
 
-## Setup Instructions
+## Four Wisdom Guides
 
-### 1. Prerequisites
+| Persona | Source | Best For |
+|---|---|---|
+| **Krishna** | Bhagavad Gita | Dharma conflict, pressure, identity confusion, purposelessness |
+| **Patanjali** | Yoga Sutras | Anxiety, overthinking, mental agitation, lack of focus |
+| **Buddha** | Dhammapada / Majjhima Nikaya | Grief, sadness, attachment, existential pain |
+| **Upanishadic Guide** | The Upanishads | Self-doubt, identity crisis, existential questioning, self-inquiry |
+
+Each response includes a **dynamically selected scripture citation** — the LLM reasons about the user's specific situation and finds the most fitting verse from the persona's source text, translated into warm plain English.
+
+---
+
+## Module Responsibilities
+
+| File | Responsibility |
+|---|---|
+| `app.py` | Streamlit UI, session state, chat interface, sidebar dashboard |
+| `orchestrator.py` | Pipeline controller — coordinates all LLM calls and state updates |
+| `prompts.py` | All prompt-builder functions (5Ps, IKS, persona selection, response, citation) |
+| `risk.py` | Two-layer hybrid risk detection + escalation response |
+| `state_manager.py` | Immutable-style state operations (init, update, reset, history) |
+| `utils.py` | Safe JSON parsing, word-limit truncation, fallback helpers |
+| `config.py` | Personas (with Arjuna parallels), risk keywords, IKS concepts, model settings |
+| `test_cases.json` | 10 annotated test cases for manual or automated testing |
+
+---
+
+## Pipeline in Detail
+
+### Layer 1 — Safety (Zero Latency)
+Keyword scan runs before any LLM call. Explicit high-risk language (`"kill myself"`, `"want to die"`, etc.) triggers an immediate compassionate crisis escalation message with Indian helpline numbers — no pipeline steps execute.
+
+### Layer 2 — Semantic Risk Scoring (LLM)
+A focused LLM call evaluates the current message alongside the last three conversation turns, returning a structured risk assessment:
+- **Risk level:** HIGH / MEDIUM / LOW
+- **Confidence score:** 0.0 – 1.0
+- **Signal flags:** passive ideation, hopelessness, isolation, escalation
+- **Reasoning:** one-sentence explanation of the primary signal detected
+
+Decision logic combines both layers: a MEDIUM keyword result combined with `passive_ideation + hopelessness` signals elevates to HIGH.
+
+### Layer 3 — 5Ps Formulation (LLM → JSON)
+After every message, the LLM updates all five dimensions of the clinical formulation:
+- **Presenting Problem** — what is distressing the person right now
+- **Predisposing Factors** — background vulnerabilities (history, personality)
+- **Precipitating Factors** — recent triggers that brought on distress
+- **Perpetuating Factors** — what is maintaining or worsening the problem
+- **Protective Factors** — strengths, coping resources, support systems
+
+### Layer 4 — IKS Mapping (LLM → JSON, Display Only)
+Maps the current 5Ps onto Indic philosophical concepts:
+- **Guna** — dominant quality of mental state (Sattva / Rajas / Tamas)
+- **Dominant Concepts** — 2–3 relevant concepts from attachment, chitta vritti, dharma conflict, viveka, vairagya, ahamkara, etc.
+- **Brief Mapping** — 2–3 sentences contextualising the IKS lens
+
+This output is shown in the sidebar as a cultural mirror. It does not route persona selection.
+
+### Layer 5 — Persona Selection (LLM → JSON)
+A dedicated LLM call examines the full 5Ps formulation and selects the most appropriate wisdom guide, with a short reasoning note. Persona stability is preserved — a switch only happens when another persona would provide meaningfully better guidance.
+
+### Layer 6 — Response + Citation (Two LLM Calls)
+**Call 1 (plain text):** The selected persona speaks directly to the user — warm, authentic, never clinical. Includes one practical step and ends with an open reflective question. Capped at 300 words.
+
+**Call 2 (JSON citation):** A separate LLM call finds the single most contextually fitting verse from the persona's source text, given the user's specific situation and the response just generated. Returns `citation_text` (plain English translation) and `citation_ref` (precise source location). Citation failure is non-fatal — the response renders without a footnote.
+
+---
+
+## Setup
+
+### Prerequisites
 - Python 3.11+
-- An **Anthropic API key** ([get one here](https://console.anthropic.com/))
+- A free [Groq API key](https://console.groq.com) (no credit card required)
 
-### 2. Clone / copy the project
-```bash
-mkdir antar && cd antar
-# copy all project files here
-```
+### Installation
 
-### 3. Create a virtual environment
 ```bash
+git clone https://github.com/Sorcerer-lab/Antar.git
+cd Antar
 python -m venv .venv
-source .venv/bin/activate      # Linux/macOS
-.venv\Scripts\activate         # Windows
-```
-
-### 4. Install dependencies
-```bash
+source .venv/bin/activate        # Linux / macOS
+# .venv\Scripts\activate         # Windows
 pip install -r requirements.txt
 ```
 
-### 5. Set your API key
+### Configure API Key
+
 Create a `.env` file in the project root:
-```
-ANTHROPIC_API_KEY=sk-ant-...your-key-here...
+
+```env
+GROQ_API_KEY=your_groq_api_key_here
 ```
 
 Or export it directly:
+
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-..."
+export GROQ_API_KEY="gsk_..."
 ```
 
-### 6. Run the app
+### Run
+
 ```bash
 streamlit run app.py
 ```
 
-The app will open at `http://localhost:8501`.
+Opens at `http://localhost:8501`.
+
+### Deploying to Streamlit Cloud
+
+1. Push the repo to GitHub
+2. Connect it at [share.streamlit.io](https://share.streamlit.io)
+3. Add `GROQ_API_KEY` under **Settings → Secrets** in the Streamlit Cloud dashboard
 
 ---
 
-## Features
-
-### 🔒 Safety-First Design
-- Keyword-based HIGH/MEDIUM/LOW risk classification on every message
-- HIGH risk (suicidal ideation, self-harm) **immediately bypasses all pipelines**
-  and returns a compassionate crisis escalation message with helpline numbers
-- No persona or psychological analysis is performed on HIGH-risk inputs
-
-### 🧠 Dynamic 5Ps Formulation
-After every user message, the LLM updates all five dimensions:
-- **Presenting Problem** — What is distressing the person right now
-- **Predisposing Factors** — Background vulnerabilities
-- **Precipitating Factors** — Recent triggers
-- **Perpetuating Factors** — What is maintaining the distress
-- **Protective Factors** — Strengths and resources
-
-### 🪷 Indic Knowledge Mapping
-Maps the formulation to:
-- **Guna** (Sattva / Rajas / Tamas) — Quality of mental state
-- **Dominant Concepts** — From attachment, chitta vritti, dharma conflict, viveka, etc.
-- **Brief Mapping** — Explanation of how IKS concepts apply
-
-### 🎭 Persona-Adaptive Responses
-Four Indic wisdom personas, auto-selected each turn:
-| Persona | Best For |
-|---|---|
-| **Krishna** | Dharma conflict, identity, purpose, anger |
-| **Patanjali** | Anxiety, overthinking, mental agitation |
-| **Buddha** | Grief, sadness, attachment, impermanence |
-| **Upanishadic Guide** | Existential questions, self-inquiry, emptiness |
-
-### 📊 Live Sidebar Dashboard
-- Risk level badge (🟢/🟡/🔴)
-- Current persona + reasoning
-- IKS guna + concepts + mapping
-- 5Ps formulation (expandable)
-- Raw JSON state viewer
-
----
-
-## How to Run Test Cases
+## Running Test Cases
 
 ```bash
 python - <<'EOF'
@@ -148,53 +180,40 @@ with open("test_cases.json") as f:
 for case in cases:
     state = initialize_state()
     print(f"\n--- Test {case['id']}: {case['category']} ---")
-    response, state = process_turn(state, case["input"])
-    print(f"Risk: {state['risk_level']} (expected: {case['expected_risk']})")
+    response_data, state = process_turn(state, case["input"])
+    print(f"Risk:    {state['risk_level']} (expected: {case['expected_risk']})")
     print(f"Persona: {state['persona']} (expected: {case['likely_persona']})")
-    print(f"Guna: {state['iks']['guna']}")
-    print(f"Response: {response[:120]}...")
+    print(f"Guna:    {state['iks']['guna']}")
+    print(f"Response: {response_data['response_text'][:120]}...")
 EOF
 ```
 
 ---
 
-## Limitations
+## Tech Stack
 
-1. **Not a clinical tool** — This chatbot is not a replacement for professional mental health care.
-   It should not be used for diagnosis, treatment, or crisis intervention beyond signposting.
-
-2. **Keyword-only risk detection** — The risk engine uses pattern matching, not clinical assessment.
-   It can produce false positives (over-sensitive) and false negatives (missed signals).
-
-3. **LLM reliability** — JSON outputs from intermediate steps may occasionally fail to parse;
-   fallback values are applied silently in these cases.
-
-4. **Cultural context** — IKS mappings and persona voices are approximate; they are inspired by
-   the traditions but do not represent authoritative scholarly interpretations.
-
-5. **No persistent memory** — Conversation state exists only within the current browser session.
-   Refreshing the page resets everything.
-
-6. **Response length** — Responses are capped at ~100 words for safety and accessibility.
-   Complex situations may warrant more nuanced engagement than this allows.
+| Component | Technology |
+|---|---|
+| UI | Streamlit |
+| LLM | Llama 3.1 8B Instant via Groq Cloud (free tier) |
+| Risk detection | Hybrid keyword + LLM semantic scorer |
+| Persona routing | Dedicated LLM call on 5Ps formulation |
+| State management | Python dict, session-scoped |
+| Environment | python-dotenv |
 
 ---
 
-## Folder Structure
+## Limitations
 
-```
-project/
-├── app.py              ← Streamlit UI entry point
-├── orchestrator.py     ← Pipeline controller
-├── prompts.py          ← All LLM prompt builders
-├── risk.py             ← Risk detection + escalation
-├── state_manager.py    ← State operations
-├── utils.py            ← JSON helpers + utilities
-├── config.py           ← Central configuration
-├── test_cases.json     ← 10 annotated test cases
-├── requirements.txt    ← Python dependencies
-└── README.md           ← This file
-```
+**Not a clinical tool.** Antar is designed for early mental wellness support and self-reflection. It is not a substitute for professional mental health care and should not be used for diagnosis, treatment, or crisis intervention beyond helpline signposting.
+
+**Keyword-only risk floor.** The risk engine uses a hybrid approach but cannot replace clinical assessment. False positives (over-sensitivity) and false negatives (missed signals) are both possible.
+
+**LLM reliability.** JSON outputs from intermediate steps may occasionally fail to parse — fallback values are applied silently. Scripture citations are generated by the LLM and may contain approximations; always verify against authoritative sources.
+
+**Cultural approximation.** IKS mappings and persona voices are inspired by the traditions but do not represent authoritative scholarly interpretations.
+
+**No persistent memory.** Conversation state exists only within the current browser session. Refreshing the page resets everything.
 
 ---
 
@@ -209,5 +228,28 @@ project/
 
 ---
 
-*Built with Claude (Anthropic) · Streamlit · Indic wisdom traditions*
+## Project Structure
 
+```
+Antar/
+├── app.py              ← Streamlit UI entry point
+├── orchestrator.py     ← Pipeline controller (8 steps per turn)
+├── prompts.py          ← All LLM prompt builders (5 functions)
+├── risk.py             ← Two-layer hybrid risk detection
+├── state_manager.py    ← State operations (init / update / reset)
+├── utils.py            ← JSON parsing, truncation, fallbacks
+├── config.py           ← Personas, keywords, IKS concepts, model config
+├── test_cases.json     ← 10 annotated test cases
+├── requirements.txt    ← Python dependencies
+└── README.md           ← This file
+```
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE) for full terms.
+
+---
+
+*Built with Groq (Llama 3.1) · Streamlit · Indic wisdom traditions*
